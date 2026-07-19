@@ -1,0 +1,81 @@
+# Enable rewrites
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Ensure the base is the current directory
+# NOTE: if you upload this app into a subfolder (e.g. /fdert/), change
+# RewriteBase below to match, e.g. RewriteBase /fdert/
+RewriteBase /fdert/
+
+# Serve existing files and directories directly
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route API endpoints to unified router
+RewriteRule ^api/(db|auth|storage|functions)\.php$ api/index.php?service=$1 [L,QSA]
+
+# Allow public uploads to be served directly
+RewriteRule ^uploads/(.*)$ uploads/$1 [L]
+
+# SPA fallback to index.html for everything else
+RewriteRule . index.html [L]
+</IfModule>
+
+# SECURITY: never serve DB credentials, example config, or logs over the web.
+<FilesMatch "^config(\.example)?\.php$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+<IfModule mod_rewrite.c>
+RewriteRule ^logs/ - [F,L]
+</IfModule>
+
+# SECURITY: test-webhook.html is a developer debug tool for simulating WhatsApp
+# webhook calls. It should not be reachable on a live production site — delete
+# it before going live, or at minimum keep it blocked here.
+<FilesMatch "^test-webhook\.html$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<FilesMatch "^(migrate_tenant|create_platform_admin)\.php$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Basic security headers (optional)
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-XSS-Protection "1; mode=block"
+
+  # index.html must never be cached: it references hashed JS/CSS bundles, and a stale
+  # copy makes the browser keep running an OLD frontend after an upload (looks like
+  # "changes don't work / settings don't save").
+  <FilesMatch "^index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+  # Hashed assets are immutable: cache aggressively.
+  <FilesMatch "\.(js|css|woff2?|ttf)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>

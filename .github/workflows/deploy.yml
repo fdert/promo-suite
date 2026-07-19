@@ -1,0 +1,92 @@
+name: Deploy to Hostinger VPS
+
+# Triggers automatically on every push to main. You can also run it manually
+# from the GitHub "Actions" tab (workflow_dispatch) — handy for redeploying
+# without a new commit.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Ensures two deploys can never run at the same time and step on each other.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Lint backend PHP for syntax errors
+        run: |
+          php_files=$(find backend/api -name "*.php")
+          for f in $php_files; do
+            php -l "$f" || exit 1
+          done
+
+      - name: Assemble release folder
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          # Backend: everything except the things that must stay
+          # server-persisted (uploads/ and api/config.php are re-linked to
+          # shared/ by activate_release.sh — we still copy .htaccess files etc).
+          rsync -a --exclude 'uploads' --exclude 'api/config.php' --exclude 'logs' backend/ release/
+          # Frontend build output goes into the same web root, alongside api/.
+          rsync -a frontend/dist/ release/
+
+      - name: Set release name
+        id: release_name
+        run: echo "name=$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_SSH_PORT || 22 }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync deploy scripts to VPS
+        run: |
+          ssh -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "mkdir -p '${{ secrets.VPS_DEPLOY_PATH }}/scripts'"
+          rsync -az -e "ssh -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
+            scripts/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/scripts/"
+
+      - name: Upload release to VPS
+        run: |
+          rsync -az -e "ssh -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
+            release/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/releases/${{ steps.release_name.outputs.name }}/"
+
+      - name: Activate release on VPS
+        run: |
+          ssh -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "DEPLOY_PATH='${{ secrets.VPS_DEPLOY_PATH }}' bash '${{ secrets.VPS_DEPLOY_PATH }}/scripts/activate_release.sh' '${{ steps.release_name.outputs.name }}'"
+
+      - name: Deploy summary
+        run: |
+          echo "### Deployed release \`${{ steps.release_name.outputs.name }}\` ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "Roll back any time with: \`bash scripts/rollback.sh --previous\` on the VPS." >> "$GITHUB_STEP_SUMMARY"

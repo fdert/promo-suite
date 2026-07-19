@@ -1,0 +1,15 @@
+# Frontend build artifacts and dependencies (rebuilt fresh on every deploy)
+frontend/node_modules/
+frontend/dist/
+
+# Backend secrets and runtime/persisted data — these live ONLY in shared/ on
+# the VPS (see scripts/server_bootstrap.sh) and must never be committed.
+backend/api/config.php
+backend/logs/*
+!backend/logs/.htaccess
+backend/uploads/*
+!backend/uploads/.htaccess
+
+# OS/editor noise
+.DS_Store
+*.log

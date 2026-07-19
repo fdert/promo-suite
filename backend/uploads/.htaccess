@@ -1,0 +1,31 @@
+# WhatsApp media uploads — never execute code here.
+# This is defense-in-depth: stored filenames are already extension-whitelisted
+# server-side (see wa_safe_ext in api/index.php), but we also block execution at
+# the web-server level in case the whitelist is ever bypassed.
+
+# Deny direct access to any script-like file that might land here.
+<FilesMatch "(?i)\.(php|php[0-9]?|phtml|phps|phar|pht|cgi|pl|py|sh|shtml|asp|aspx|jsp|htaccess|htpasswd)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Turn the PHP engine off if mod_php is the active handler.
+# Guarded by IfModule so PHP-FPM / CGI hosts (where php_flag is illegal) don't 500.
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
+</IfModule>
+
+# Strip any script handlers/types that a parent config may have set.
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar .pht .cgi .pl .py
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phar .pht

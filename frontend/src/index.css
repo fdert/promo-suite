@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+  ::selection {
+    @apply bg-accent-light text-accent-dark;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: theme('colors.line');
+    border-radius: 999px;
+  }
+}

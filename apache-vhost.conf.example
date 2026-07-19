@@ -1,0 +1,46 @@
+# Example Apache VirtualHost for Hostinger VPS.
+# Adjust ServerName, paths, and SSL directives to match your actual domain
+# and certificate setup (Hostinger VPS panels usually offer free Let's
+# Encrypt certificates you can attach here).
+#
+# KEY POINT: DocumentRoot points at the `current` SYMLINK, not a fixed
+# folder — that symlink is what activate_release.sh atomically re-points on
+# every deploy and every rollback. Nothing here needs to change between
+# deploys.
+
+<VirtualHost *:80>
+    ServerName yourdomain.com
+    ServerAlias www.yourdomain.com
+    DocumentRoot /home/youruser/deployments/current
+
+    <Directory /home/youruser/deployments/current>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/promo-suite-error.log
+    CustomLog ${APACHE_LOG_DIR}/promo-suite-access.log combined
+</VirtualHost>
+
+# If you have SSL configured (recommended — required for Moyasar payments
+# and for browsers to allow the WhatsApp webhook securely):
+#
+# <VirtualHost *:443>
+#     ServerName yourdomain.com
+#     ServerAlias www.yourdomain.com
+#     DocumentRoot /home/youruser/deployments/current
+#
+#     <Directory /home/youruser/deployments/current>
+#         Options -Indexes +FollowSymLinks
+#         AllowOverride All
+#         Require all granted
+#     </Directory>
+#
+#     SSLEngine on
+#     SSLCertificateFile /etc/letsencrypt/live/yourdomain.com/fullchain.pem
+#     SSLCertificateKeyFile /etc/letsencrypt/live/yourdomain.com/privkey.pem
+#
+#     ErrorLog ${APACHE_LOG_DIR}/promo-suite-error.log
+#     CustomLog ${APACHE_LOG_DIR}/promo-suite-access.log combined
+# </VirtualHost>

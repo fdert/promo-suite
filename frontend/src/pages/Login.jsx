@@ -20,7 +20,7 @@ export default function Login() {
     setLoading(true);
     try {
       await signIn(email, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       if (err instanceof ApiError && err.code === 'trial_expired') {
         setError('انتهت الفترة التجريبية لوكالتكم. يرجى الاشتراك للمتابعة.');

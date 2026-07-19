@@ -46,7 +46,7 @@ export default function Pricing() {
           </div>
           <span className="font-display font-extrabold">نظام الوكالة</span>
         </Link>
-        <Link to={user ? '/' : '/login'}>
+        <Link to={user ? '/dashboard' : '/login'}>
           <Button variant="outline" size="sm" className="border-white/20 bg-transparent text-white hover:bg-white/10">
             {user ? 'لوحة التحكم' : 'تسجيل الدخول'}
           </Button>

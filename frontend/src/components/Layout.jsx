@@ -8,7 +8,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'الرئيسية', icon: LayoutDashboard, end: true },
+  { to: '/dashboard', label: 'الرئيسية', icon: LayoutDashboard, end: true },
   { to: '/customers', label: 'العملاء', icon: Users },
   { to: '/orders', label: 'الطلبات', icon: ShoppingBag },
   { to: '/payments', label: 'المدفوعات', icon: Wallet },

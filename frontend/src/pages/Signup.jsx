@@ -32,7 +32,7 @@ export default function Signup() {
       if (planId) {
         navigate('/billing/checkout', { state: { planId } });
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       setError(err.message || 'تعذر إنشاء الحساب');

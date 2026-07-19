@@ -58,7 +58,7 @@ export default function CheckoutComplete() {
             <CheckCircle2 className="mx-auto mb-3 h-12 w-12 text-success" />
             <p className="font-display text-lg font-bold text-ink">تم تفعيل اشتراكك بنجاح</p>
             <p className="mt-1 text-sm text-ink-soft">يمكنك الآن الاستفادة من كامل ميزات باقتك</p>
-            <Button className="mt-5 w-full" onClick={() => navigate('/')}>الذهاب للوحة التحكم</Button>
+            <Button className="mt-5 w-full" onClick={() => navigate('/dashboard')}>الذهاب للوحة التحكم</Button>
           </>
         )}
         {status === 'failed' && (

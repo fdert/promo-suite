@@ -8498,7 +8498,15 @@ function handle_storage() {
   $baseName = preg_replace('/[^A-Za-z0-9_.-]/', '_', (string)end($pathParts));
   if ($baseName === '' || $baseName === false) $baseName = bin2hex(random_bytes(8)) . '.' . $ext;
 
-  $uploadsRoot = realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . 'uploads';
+  // BUG FIX: `uploads/` is a symlink to shared/uploads/ in the deploy layout
+  // (see scripts/activate_release.sh). realpath() must be called on the
+  // FULL path (through the symlink) so it resolves to the same canonical
+  // path that $resolvedDir below will resolve to. The previous version only
+  // resolved the parent directory and string-appended "/uploads", which
+  // never matched the symlink-resolved target — causing EVERY upload to
+  // fail with "مسار غير صالح", regardless of permissions.
+  $uploadsRoot = realpath(__DIR__ . '/../uploads');
+  if ($uploadsRoot === false) respond(null, [ 'message' => 'مجلد uploads غير موجود على الخادم' ], 500);
   $targetDir = $uploadsRoot . DIRECTORY_SEPARATOR . $bucket . ($subDir !== '' ? DIRECTORY_SEPARATOR . $subDir : '');
   if (!is_dir($targetDir)) @mkdir($targetDir, 0775, true);
 

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار Webhook الواتساب</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            direction: rtl;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #25D366;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #1ea952;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #e2f3ff;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+            margin-bottom: 20px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 اختبار Webhook الواتساب</h1>
+        
+        <div class="info">
+            <strong>ملاحظة:</strong> هذه الصفحة لاختبار استقبال الرسائل الواردة في النظام. 
+            <br>رابط الـ Webhook: <code>https://gcuqfxacnbxdldsbmgvf.supabase.co/functions/v1/whatsapp-webhook</code>
+        </div>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label for="phoneNumber">رقم الهاتف (المرسل):</label>
+                <input type="text" id="phoneNumber" value="+966500000000" required>
+            </div>
+
+            <div class="form-group">
+                <label for="customerName">اسم العميل:</label>
+                <input type="text" id="customerName" value="عميل تجريبي" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">محتوى الرسالة:</label>
+                <textarea id="message" placeholder="اكتب رسالة تجريبية هنا..." required>مرحباً، هذه رسالة تجريبية من العميل</textarea>
+            </div>
+
+            <button type="submit" id="sendBtn">إرسال رسالة تجريبية 📨</button>
+        </form>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const sendBtn = document.getElementById('sendBtn');
+            const result = document.getElementById('result');
+            
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'جاري الإرسال...⏳';
+            
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const customerName = document.getElementById('customerName').value;
+            const message = document.getElementById('message').value;
+            
+            const testData = {
+                from: phoneNumber,
+                message: message,
+                customerName: customerName,
+                type: 'text',
+                timestamp: Math.floor(Date.now() / 1000)
+            };
+            
+            try {
+                const response = await fetch('https://gcuqfxacnbxdldsbmgvf.supabase.co/functions/v1/whatsapp-webhook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const responseData = await response.text();
+                
+                result.style.display = 'block';
+                
+                if (response.ok) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <strong>✅ تم الإرسال بنجاح!</strong><br>
+                        كود الاستجابة: ${response.status}<br>
+                        <strong>البيانات المرسلة:</strong>
+                        <pre>${JSON.stringify(testData, null, 2)}</pre>
+                        <strong>استجابة الخادم:</strong>
+                        <pre>${responseData}</pre>
+                        <em>الآن تحقق من صفحة إدارة الواتساب في النظام لرؤية الرسالة الواردة.</em>
+                    `;
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = `
+                        <strong>❌ فشل في الإرسال</strong><br>
+                        كود الاستجابة: ${response.status}<br>
+                        <strong>البيانات المرسلة:</strong>
+                        <pre>${JSON.stringify(testData, null, 2)}</pre>
+                        <strong>رسالة الخطأ:</strong>
+                        <pre>${responseData}</pre>
+                    `;
+                }
+            } catch (error) {
+                result.style.display = 'block';
+                result.className = 'result error';
+                result.innerHTML = `
+                    <strong>❌ خطأ في الاتصال</strong><br>
+                    <pre>${error.message}</pre>
+                    <strong>البيانات المرسلة:</strong>
+                    <pre>${JSON.stringify(testData, null, 2)}</pre>
+                `;
+            }
+            
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'إرسال رسالة تجريبية 📨';
+        });
+    </script>
+</body>
+</html>

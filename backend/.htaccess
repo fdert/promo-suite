@@ -49,7 +49,7 @@ RewriteRule ^logs/ - [F,L]
   </IfModule>
 </FilesMatch>
 
-<FilesMatch "^(migrate_tenant|create_platform_admin)\.php$">
+<FilesMatch "^(migrate_tenant|create_platform_admin|recover_core_schema)\.php$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

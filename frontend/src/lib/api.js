@@ -33,13 +33,14 @@ async function request(service, body, { method = 'POST', query = '' } = {}) {
   if (!res.ok || json?.error) {
     const err = json?.error || {};
     if (res.status === 401) {
-      // Session expired/invalid server-side (or tenant suspended - see 402
-      // handling in AuthContext). Clear the locally cached profile and send
-      // the person back to login rather than showing a confusing error.
+      // Session expired/invalid server-side. Clear the locally cached
+      // profile and let AuthContext react to it (soft, in-app redirect via
+      // React Router) — never force a hard page reload here, since that's
+      // what caused the jarring "flashes to login" bug: a stale cached
+      // profile would trigger this on an innocuous background request even
+      // while the person was just looking at the public landing page.
       try { localStorage.removeItem('promo_suite_user'); } catch { /* ignore */ }
-      if (!location.pathname.startsWith('/login')) {
-        location.href = '/login';
-      }
+      window.dispatchEvent(new CustomEvent('auth:session-invalid'));
     }
     throw new ApiError(err.message, err.code, res.status);
   }
@@ -85,6 +86,9 @@ export const auth = {
   },
   signOut() {
     return request('auth', { action: 'signout' });
+  },
+  whoami() {
+    return request('auth', { action: 'whoami' });
   },
 };
 

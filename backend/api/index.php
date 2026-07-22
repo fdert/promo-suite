@@ -788,7 +788,7 @@ if ($__service === 'functions') {
   // Public: the pricing page (no login yet) needs to read active plans, and
   // the payment gateway's server-to-server webhook has no session at all —
   // both verify themselves by other means (webhook signature) rather than login.
-  $__publicActions = ['billing-plans', 'billing-webhook'];
+  $__publicActions = ['billing-plans', 'billing-webhook', 'platform-content-get'];
   if (in_array($action, $__publicActions, true)) {
     // no auth gate — handled inside the action itself
   } elseif (in_array($action, $__cronActions, true)) {
@@ -3216,6 +3216,47 @@ if ($__service === 'functions') {
           respond(['ok' => true]);
         } catch (Throwable $e) {
           respond(null, ['message' => 'تعذر تحديث حالة الوكالة'], 500);
+        }
+        break;
+      }
+
+      // ==================== Editable public homepage content ====================
+      case 'platform-content-get': {
+        // Public: powers the landing page. Returns {} if nothing has been
+        // customized yet — the frontend falls back to its built-in defaults.
+        try {
+          $pdo = pdo();
+          $pdo->exec("CREATE TABLE IF NOT EXISTS platform_content (content_key VARCHAR(191) PRIMARY KEY, content_value LONGTEXT NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+          $rows = $pdo->query("SELECT content_key, content_value FROM platform_content")->fetchAll(PDO::FETCH_KEY_PAIR);
+          $out = [];
+          foreach ($rows as $k => $v) {
+            $decoded = json_decode((string)$v, true);
+            $out[$k] = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $v;
+          }
+          respond(['content' => $out]);
+        } catch (Throwable $e) {
+          respond(['content' => []]);
+        }
+        break;
+      }
+
+      case 'platform-content-save': {
+        require_role(['platform_admin']);
+        $updates = is_array($req['content'] ?? null) ? $req['content'] : null;
+        if ($updates === null) respond(null, ['message' => 'content مطلوب (كائن مفاتيح/قيم)'], 400);
+        try {
+          $pdo = pdo();
+          $pdo->exec("CREATE TABLE IF NOT EXISTS platform_content (content_key VARCHAR(191) PRIMARY KEY, content_value LONGTEXT NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+          $st = $pdo->prepare("INSERT INTO platform_content (content_key, content_value, updated_at) VALUES (:k, :v, NOW()) ON DUPLICATE KEY UPDATE content_value = VALUES(content_value), updated_at = NOW()");
+          foreach ($updates as $key => $value) {
+            $key = preg_replace('/[^a-z0-9_]/', '', strtolower((string)$key));
+            if ($key === '') continue;
+            $encoded = is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE);
+            $st->execute([':k' => $key, ':v' => $encoded]);
+          }
+          respond(['ok' => true]);
+        } catch (Throwable $e) {
+          respond(null, ['message' => 'تعذر حفظ المحتوى: ' . $e->getMessage()], 500);
         }
         break;
       }
@@ -8256,6 +8297,13 @@ function handle_auth() {
     $_SESSION['user'] = $user; respond([ 'user' => $user ]);
   }
   if ($action === 'signout') { unset($_SESSION['user']); respond([ 'ok' => true ]); }
+  if ($action === 'whoami') {
+    // Lets the frontend verify a locally-cached login against the REAL
+    // server-side session, instead of blindly trusting a value that may be
+    // stale (e.g. after the session expired or the server was restarted).
+    // Deliberately never errors — "no session" is a normal, valid answer.
+    respond([ 'user' => current_user() ]);
+  }
   respond(null, [ 'message' => 'Unsupported auth action' ], 400);
 }
 
@@ -8287,6 +8335,12 @@ function ensure_users_table($pdo) {
  * standalone migration script (api/migrate_tenant.php).
  */
 function ensure_tenant_tables($pdo) {
+  $pdo->exec("CREATE TABLE IF NOT EXISTS platform_content (
+    content_key VARCHAR(191) PRIMARY KEY,
+    content_value LONGTEXT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
   $pdo->exec("CREATE TABLE IF NOT EXISTS subscription_plans (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
@@ -8432,6 +8486,7 @@ function handle_storage() {
   $bucket = isset($_POST['bucket']) ? preg_replace('/[^A-Za-z0-9_-]/', '_', $_POST['bucket']) : '';
   $path = isset($_POST['path']) ? trim($_POST['path'], "/ ") : '';
   if ($bucket === '' || $path === '') respond(null, [ 'message' => 'bucket and path required' ], 400);
+  if ($bucket === 'platform') { require_role(['platform_admin']); } // homepage logo/hero images — platform-wide, not per-tenant
   if (!isset($_FILES['file'])) respond(null, [ 'message' => 'file required' ], 400);
   $ext = validate_upload_or_die($_FILES['file']);
 

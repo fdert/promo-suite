@@ -326,9 +326,10 @@ function Footer({ content }) {
 }
 
 export default function Landing() {
-  const { user } = useAuth();
+  const { user, checkingSession } = useAuth();
   const content = useContent();
 
+  if (checkingSession) return null; // avoid a flash-redirect while verifying a cached login
   if (user) return <Navigate to="/dashboard" replace />;
 
   return (

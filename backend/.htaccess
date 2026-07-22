@@ -5,7 +5,7 @@ RewriteEngine On
 # Ensure the base is the current directory
 # NOTE: if you upload this app into a subfolder (e.g. /fdert/), change
 # RewriteBase below to match, e.g. RewriteBase /fdert/
-RewriteBase /fdert/
+RewriteBase /
 
 # Serve existing files and directories directly
 RewriteCond %{REQUEST_FILENAME} -f [OR]

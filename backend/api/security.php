@@ -148,7 +148,7 @@ function login_rl_clear($email) {
  * generic CRUD endpoint — only a platform_admin may.
  */
 function tenant_platform_only_tables() {
-  return ['tenants', 'subscription_plans', 'tenant_subscriptions', 'platform_admin_audit_log'];
+  return ['tenants', 'subscription_plans', 'tenant_subscriptions', 'platform_admin_audit_log', 'platform_content'];
 }
 
 /** The tenant_id of the logged-in user, or null (e.g. for a platform_admin). */

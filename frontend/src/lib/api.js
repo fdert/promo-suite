@@ -145,6 +145,18 @@ export const platform = {
 };
 
 // ---------------------------------------------------------------------------
+// Editable homepage content (service=functions, platform-content-* actions)
+// ---------------------------------------------------------------------------
+export const platformContent = {
+  get() {
+    return request('functions', { action: 'platform-content-get' });
+  },
+  save(content) {
+    return request('functions', { action: 'platform-content-save', content });
+  },
+};
+
+// ---------------------------------------------------------------------------
 // File upload (service=storage) — multipart, not JSON
 // ---------------------------------------------------------------------------
 export async function uploadFile(bucket, path, file) {

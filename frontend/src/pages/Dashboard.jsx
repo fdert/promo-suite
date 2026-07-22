@@ -4,6 +4,7 @@ import { Users, ShoppingBag, Wallet, AlertTriangle } from 'lucide-react';
 import { fn } from '../lib/api';
 import { Card, CardHeader, PageLoading, Badge } from '../components/ui/Surfaces';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 function formatSar(n) {
   return `${Number(n || 0).toLocaleString('ar-SA', { maximumFractionDigits: 0 })} ر.س`;
@@ -16,16 +17,23 @@ function Kpi({ icon: Icon, label, value, sub, tone = 'accent' }) {
     warning: 'bg-warning-light text-warning',
     danger: 'bg-danger-light text-danger',
   };
+  const barClasses = {
+    accent: 'bg-accent',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    danger: 'bg-danger',
+  };
   return (
-    <Card>
+    <Card hover className="relative overflow-hidden">
+      <span className={`absolute inset-x-0 top-0 h-1 ${barClasses[tone]}`} aria-hidden="true" />
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-ink-soft">{label}</p>
-          <p className="mt-1 font-display text-2xl font-extrabold tabular text-ink">{value}</p>
+          <p className="mt-1.5 font-display text-2xl font-extrabold tabular text-ink">{value}</p>
           {sub && <p className="mt-1 text-xs text-ink-faint">{sub}</p>}
         </div>
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneClasses[tone]}`}>
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5" strokeWidth={2} />
         </div>
       </div>
     </Card>
@@ -36,6 +44,10 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
+  const { user } = useAuth();
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'صباح الخير' : hour < 17 ? 'نهارك سعيد' : 'مساء الخير';
 
   useEffect(() => {
     let alive = true;
@@ -57,7 +69,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-extrabold text-ink">لوحة المعلومات</h1>
+        <h1 className="font-display text-2xl font-extrabold text-ink">
+          {greeting}{user?.full_name ? `، ${user.full_name.split(' ')[0]}` : ''}
+        </h1>
         <p className="mt-1 text-sm text-ink-soft">نظرة عامة على أداء وكالتك اليوم</p>
       </div>
 
@@ -87,14 +101,14 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader title="الطلبات الأخيرة" />
-          <div className="space-y-3">
+          <div className="space-y-1">
             {(data.recent_orders || []).slice(0, 5).map((o) => (
-              <div key={o.id} className="flex items-center justify-between border-b border-line pb-3 last:border-0 last:pb-0">
+              <div key={o.id} className="flex items-center justify-between rounded-xl px-2 py-2.5 transition-colors hover:bg-paper/70">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">{o.order_number}</p>
                   <p className="truncate text-xs text-ink-soft">{o.customer_name || 'غير محدد'}</p>
                 </div>
-                <Badge tone="accent">{o.status}</Badge>
+                <Badge tone="accent" dot>{o.status}</Badge>
               </div>
             ))}
             {(!data.recent_orders || data.recent_orders.length === 0) && (

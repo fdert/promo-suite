@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 // Change both this and .htaccess's RewriteBase together if you deploy to a
 // different path (or to '/' if it becomes the site root).
 export default defineConfig({
- base: '/',
+  base: '/fdert/',
   plugins: [react()],
   server: {
     proxy: {

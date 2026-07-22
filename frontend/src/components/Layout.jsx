@@ -36,17 +36,17 @@ function SidebarContent({ onNavigate }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2.5 px-5 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white">
+      <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-6">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-[0_4px_12px_rgba(232,84,44,0.35)]">
           <Building2 className="h-5 w-5" />
         </div>
         <div>
           <p className="font-display text-sm font-extrabold leading-tight text-white">نظام الوكالة</p>
-          <p className="text-xs text-white/50">إدارة أعمال شاملة</p>
+          <p className="text-xs text-white/45">إدارة أعمال شاملة</p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4 scrollbar-thin">
         {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -54,12 +54,14 @@ function SidebarContent({ onNavigate }) {
             end={end}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive ? 'bg-accent text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-accent text-white shadow-[0_4px_14px_rgba(232,84,44,0.3)]'
+                  : 'text-white/60 hover:bg-white/[0.06] hover:text-white'
               }`
             }
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
             {label}
           </NavLink>
         ))}
@@ -67,17 +69,17 @@ function SidebarContent({ onNavigate }) {
 
       <div className="border-t border-white/10 px-3 py-4">
         <div className="mb-2 flex items-center gap-2.5 rounded-xl px-3 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent ring-1 ring-white/10">
             {(user?.full_name || user?.email || '?').slice(0, 1).toUpperCase()}
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-white">{user?.full_name || user?.email}</p>
-            <p className="truncate text-xs text-white/50">{user?.role === 'platform_admin' ? 'مالك المنصة' : 'عضو'}</p>
+            <p className="truncate text-xs text-white/45">{user?.role === 'platform_admin' ? 'مالك المنصة' : 'عضو'}</p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           تسجيل الخروج

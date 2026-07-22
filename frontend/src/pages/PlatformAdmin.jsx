@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Building2, Users2, TrendingUp, Ban, Plus, Pencil } from 'lucide-react';
-import { db, platform } from '../lib/api';
+import { db, platform, platformContent, uploadFile } from '../lib/api';
 import { Card, CardHeader, Badge, PageLoading } from '../components/ui/Surfaces';
 import DataTable from '../components/ui/DataTable';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { Input, Select, FormRow } from '../components/ui/Field';
+import { Input, Select, Textarea, FormRow } from '../components/ui/Field';
 import { useToast } from '../context/ToastContext';
 
 function formatSar(n) {
@@ -277,10 +277,124 @@ function PlansSection() {
   );
 }
 
+const CONTENT_FIELDS = [
+  ['site_name', 'اسم المنصة', 'input'],
+  ['hero_eyebrow', 'شارة صغيرة أعلى العنوان الرئيسي', 'input'],
+  ['hero_headline_1', 'العنوان الرئيسي — السطر الأول', 'input'],
+  ['hero_headline_2', 'العنوان الرئيسي — السطر الثاني', 'input'],
+  ['hero_subtext', 'الوصف التعريفي أسفل العنوان', 'textarea'],
+  ['hero_cta_primary', 'نص الزر الرئيسي', 'input'],
+  ['hero_cta_secondary', 'نص الزر الثانوي', 'input'],
+  ['hero_trial_note', 'ملاحظة أسفل الأزرار', 'input'],
+  ['cta_headline', 'عنوان قسم الدعوة النهائي', 'input'],
+  ['footer_text', 'نص التذييل (بعد © السنة)', 'input'],
+];
+
+function ContentSection() {
+  const [content, setContent] = useState({});
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await platformContent.get();
+      setContent(res?.content || {});
+    } catch (err) {
+      toast.error(err.message || 'تعذر تحميل المحتوى');
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const set = (key) => (e) => setContent((c) => ({ ...c, [key]: e.target.value }));
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const res = await uploadFile('platform', `logo-${Date.now()}-${file.name}`, file);
+      setContent((c) => ({ ...c, logo_url: res.path }));
+      toast.success('تم رفع الشعار — لا تنس الحفظ');
+    } catch (err) {
+      toast.error(err.message || 'تعذر رفع الشعار');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await platformContent.save(content);
+      toast.success('تم حفظ محتوى الصفحة الرئيسية');
+    } catch (err) {
+      toast.error(err.message || 'تعذر الحفظ');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <PageLoading />;
+
+  return (
+    <Card>
+      <CardHeader
+        title="محتوى الصفحة الرئيسية"
+        subtitle="عدّل اسم المنصة والشعار ونصوص صفحة التعريف العامة — تنعكس فورًا بعد الحفظ"
+        action={<Button onClick={handleSave} loading={saving}>حفظ التغييرات</Button>}
+      />
+
+      <div className="max-w-xl space-y-5">
+        <FormRow label="شعار المنصة">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-line bg-paper">
+              {content.logo_url ? (
+                <img src={content.logo_url} alt="الشعار" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs text-ink-faint">بدون</span>
+              )}
+            </div>
+            <label className="cursor-pointer">
+              <span className="inline-flex h-9 items-center rounded-lg border border-line bg-white px-3 text-sm font-medium text-ink hover:bg-paper">
+                {logoUploading ? 'جارٍ الرفع...' : 'رفع شعار جديد'}
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={logoUploading} />
+            </label>
+          </div>
+        </FormRow>
+
+        {CONTENT_FIELDS.map(([key, label, type]) => (
+          <FormRow key={key} label={label}>
+            {type === 'textarea' ? (
+              <Textarea value={content[key] || ''} onChange={set(key)} />
+            ) : (
+              <Input value={content[key] || ''} onChange={set(key)} />
+            )}
+          </FormRow>
+        ))}
+
+        <p className="text-xs text-ink-faint">
+          تعديل قائمة الميزات والخطوات (features/steps) متاح حاليًا عبر الدعم الفني — واجهة تحرير مخصصة لها قادمة في تحديث لاحق.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
 const TABS = [
   { key: 'overview', label: 'نظرة عامة' },
   { key: 'tenants', label: 'الوكالات' },
   { key: 'plans', label: 'الباقات' },
+  { key: 'content', label: 'محتوى الصفحة الرئيسية' },
 ];
 
 export default function PlatformAdmin() {
@@ -293,12 +407,12 @@ export default function PlatformAdmin() {
         <p className="mt-1 text-sm text-ink-soft">إدارة الوكالات المشتركة والباقات على مستوى المنصة بالكامل</p>
       </div>
 
-      <div className="flex gap-2 border-b border-line">
+      <div className="flex gap-2 overflow-x-auto border-b border-line">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`shrink-0 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key ? 'border-b-2 border-accent text-accent-dark' : 'text-ink-soft hover:text-ink'
             }`}
           >
@@ -310,6 +424,7 @@ export default function PlatformAdmin() {
       {tab === 'overview' && <OverviewSection />}
       {tab === 'tenants' && <TenantsSection />}
       {tab === 'plans' && <PlansSection />}
+      {tab === 'content' && <ContentSection />}
     </div>
   );
 }

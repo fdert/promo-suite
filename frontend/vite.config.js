@@ -1,12 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// NOTE: base is set to '/fdert/' to match the existing .htaccess RewriteBase
-// used when this app is deployed in a subfolder on the Hostinger VPS.
-// Change both this and .htaccess's RewriteBase together if you deploy to a
-// different path (or to '/' if it becomes the site root).
+// NOTE: base is '/' because this app is deployed at the site root
+// (http://77.37.87.189, or your domain root). If you ever move it into a
+// subfolder, change this to match AND update .htaccess's RewriteBase together.
 export default defineConfig({
-  base: '/fdert/',
+  base: '/',
   plugins: [react()],
   server: {
     proxy: {
